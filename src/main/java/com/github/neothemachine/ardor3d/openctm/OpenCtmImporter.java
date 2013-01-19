@@ -18,92 +18,55 @@
  */
 package com.github.neothemachine.ardor3d.openctm;
 
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-
-import com.ardor3d.bounding.BoundingBox;
-import com.ardor3d.scenegraph.Mesh;
-import com.ardor3d.scenegraph.MeshData;
-import com.ardor3d.util.geom.BufferUtils;
-import com.ardor3d.util.resource.ResourceLocator;
-import com.ardor3d.util.resource.ResourceLocatorTool;
-import com.ardor3d.util.resource.ResourceSource;
+import java.nio.*;
 
 import darwin.jopenctm.io.CtmFileReader;
 
+import com.ardor3d.bounding.BoundingBox;
+import com.ardor3d.scenegraph.*;
+import com.ardor3d.util.geom.BufferUtils;
+import com.ardor3d.util.resource.ResourceSource;
+
 public class OpenCtmImporter {
 
-	private ResourceLocator modelLocator;
-
-	public OpenCtmImporter setModelLocator(final ResourceLocator locator) {
-		this.modelLocator = locator;
-		return this;
-	}
-
-	/**
-	 * Reads an OpenCTM file from the given resource
-	 * 
-	 * @param resource
-	 *            the name of the resource to find.
-	 * @return
-	 */
-	public Mesh load(final String resource) {
-		final ResourceSource source;
-		if (this.modelLocator == null) {
-			source = ResourceLocatorTool.locateResource(
-					ResourceLocatorTool.TYPE_MODEL, resource);
-		} else {
-			source = this.modelLocator.locateResource(resource);
-		}
-
-		if (source == null) {
-			throw new Error("Unable to locate '" + resource + "'");
-		}
-
-		return this.load(source);
-	}
-
-	/**
-	 * Reads an OpenCTM file from the given resource
-	 * 
-	 * @param resource
-	 *            a resource pointing to the model we wish to load.
-	 * @return
-	 */
-	public Mesh load(final ResourceSource resource) {
+    /**
+     * Reads an OpenCTM file from the given resource
+     *
+     * @param resource a resource pointing to the model we wish to load.
+     * @return
+     */
+    public Mesh load(ResourceSource resource) {
         if (resource == null) {
             throw new NullPointerException("Unable to load null resource");
         }
-        try{
-	    	final CtmFileReader ctmReader = new CtmFileReader(resource.openStream());
-	    	darwin.jopenctm.data.Mesh ctmMesh = ctmReader.decode();
-	    	
-	        final MeshData meshData = new MeshData();
-	        
-	        IntBuffer indexBuffer = BufferUtils.createIntBuffer(ctmMesh.indices);
-	        meshData.setIndexBuffer(indexBuffer);
-	        
-	        FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(ctmMesh.vertices);
-	        meshData.setVertexBuffer(vertexBuffer);
-	        
-	        FloatBuffer normalBuffer = BufferUtils.createFloatBuffer(ctmMesh.normals);
-	        meshData.setNormalBuffer(normalBuffer);
-	        
-	        for (int i = 0; i < ctmMesh.getUVCount(); i++) {
-	        	FloatBuffer textureBuffer = BufferUtils.createFloatBuffer(ctmMesh.texcoordinates[i].values);
-	        	meshData.setTextureBuffer(textureBuffer, i);
-	        }            
-	
-	        final Mesh mesh = new Mesh();
-	        mesh.setMeshData(meshData);
-	        mesh.setModelBound(new BoundingBox());
-	        mesh.setName(resource.getName());
-	
-	        return mesh;
-        } catch (Exception e) {
-        	throw new RuntimeException(e);
-        }
+        try {
+            CtmFileReader ctmReader = new CtmFileReader(resource.openStream());
+            darwin.jopenctm.data.Mesh ctmMesh = ctmReader.decode();
             
-    }
+            //checks if the mesh data is usable, but can make loading time longer(?)
+            //ctmMesh.checkIntegrity();
 
+            MeshData meshData = new MeshData();
+            meshData.setIndexBuffer(IntBuffer.wrap(ctmMesh.indices));
+            meshData.setVertexBuffer(FloatBuffer.wrap(ctmMesh.vertices));
+            if (ctmMesh.hasNormals()) {
+                meshData.setNormalBuffer(FloatBuffer.wrap(ctmMesh.normals));
+            }
+
+            for (int i = 0; i < ctmMesh.getUVCount(); i++) {
+                meshData.setTextureBuffer(FloatBuffer.wrap(ctmMesh.texcoordinates[i].values), i);
+            }
+            
+            //other attributes like tangent, fog or color could be added through parsing of generic attributs
+
+            final Mesh mesh = new Mesh();
+            mesh.setMeshData(meshData);
+            mesh.setModelBound(new BoundingBox());
+            mesh.setName(resource.getName());
+
+            return mesh;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
