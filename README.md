@@ -16,10 +16,8 @@ to load the same mesh as OpenCTM file (3.3 MiB in RAW mode).
 How to use
 ==========
 
-As JOpenCTM isn't published to a Maven repository yet, you have to check-out JOpenCTM manually 
-and do a Maven install.
-
-Then check-out this project and load models as usual:
+1. Checkout this project and install it in your local Maven repo
+2. Load models as usual:
 
     Mesh mesh = new OpenCtmImporter().load("...");
     root.attachChild(mesh);
