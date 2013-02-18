@@ -19,5 +19,7 @@ How to use
 1. Checkout this project and install it in your local Maven repo
 2. Load models as usual:
 
-    Mesh mesh = new OpenCtmImporter().load("...");
-    root.attachChild(mesh);
+``` 
+Mesh mesh = new OpenCtmImporter().load("...");
+root.attachChild(mesh);
+```
