@@ -9,7 +9,6 @@ if os.environ["TRAVIS_SECURE_ENV_VARS"] == "false":
   sys.exit()
 
 homedir = os.path.expanduser("~")
-print homedir
 m2 = xml.dom.minidom.parse(homedir + '/.m2/settings.xml')
 settings = m2.getElementsByTagName("settings")[0]
 
