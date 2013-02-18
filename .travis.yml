@@ -1,1 +1,9 @@
 language: java
+
+env:
+  global:
+    - SONATYPE_USERNAME=neothemachine
+    - secure: "UQ2R9ZCOV3t2X7TEf/XaC/GedVqE2rlbu9DOSMvOcmpvSKJvUbJboPh8YsXt\neajFva3fX85unxSJY6MddC4IRPmvW64XqivhyzPlrkAfx/mfin7e9qoKjYVE\n66zDQQcCBAwWWguFdAbpdx7eMqBiD2MQHuRflitPAU7wUMB3f6g="
+
+after_success:
+  - "[[ $TRAVIS_BRANCH == \"master\" ]] && { python travis/addServer.py; mvn clean deploy -DskipTests=true --settings ~/.m2/mySettings.xml; };"
