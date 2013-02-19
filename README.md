@@ -19,13 +19,7 @@ How to use
 1. Checkout this project and install it in your local Maven repo
 2. Load models as usual:
 
-    Mesh mesh = new OpenCtmImporter().load("...");
-    root.attachChild(mesh);
-    
-Known issues
-============
-
-As my goal is absolutely fast loading I only use RAW OpenCTM files which are bigger but don't have to
-be decompressed while importing. A quick test trying to load an MG2 model lead to exceptions (while
-unzipping) and faulty data. So for now, your best bet is to only use RAW in conjunction with JOpenCTM
-until the bugs are fixed.
+``` 
+Mesh mesh = new OpenCtmImporter().load("...");
+root.attachChild(mesh);
+```
