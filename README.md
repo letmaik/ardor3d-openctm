@@ -16,7 +16,13 @@ to load the same mesh as OpenCTM file (3.3 MiB in RAW mode).
 How to use
 ==========
 
-1. Checkout this project and install it in your local Maven repo
+1. Include the following in your pom:
+
+		<dependency>
+			<groupId>com.github.neothemachine</groupId>
+			<artifactId>ardor3d-openctm</artifactId>
+			<version>0.1.0</version>
+		</dependency>
 2. Load models as usual:
 
 ``` 
