@@ -25,7 +25,5 @@ How to use
 		</dependency>
 2. Load models as usual:
 
-``` 
-Mesh mesh = new OpenCtmImporter().load("...");
-root.attachChild(mesh);
-```
+        Mesh mesh = new OpenCtmImporter().load("...");
+        root.attachChild(mesh);
