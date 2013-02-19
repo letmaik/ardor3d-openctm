@@ -1,4 +1,4 @@
-OpenCTM importer for Ardor3D
+OpenCTM importer for Ardor3D [![Build Status](https://travis-ci.org/neothemachine/ardor3d-openctm.png?branch=master)](https://travis-ci.org/neothemachine/ardor3d-openctm)
 ============================
 
 This project uses Daniel Heinrich's [JOpenCTM](https://github.com/Danny02/JOpenCTM) library to read
