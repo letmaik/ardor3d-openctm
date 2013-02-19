@@ -32,10 +32,16 @@ import darwin.jopenctm.io.CtmFileWriter;
 
 /**
  * This tests whether sample Meshes from Ardor3D can be correctly encoded and decoded
- * with JOpenCTM. Correctness is only checked for RAW. For MG1 and MG2, a simple
- * heuristic is used (equal (MG1) / near-equal (MG2) volume of bounding box).
+ * with JOpenCTM and our wrapper class. 
  * 
- * TODO another test should be created which checks against reference MG1/MG2 files
+ * It does NOT test if JOpenCTM does adhere to the OpenCTM format spec! (see TeapotReferenceTest)
+ * 
+ * Total correctness is only checked for RAW. For MG1, the correctness
+ * of vertices and normals is checked. For MG2, only a simple heuristic is used
+ * (volume of bounding box nearly equal).
+ * 
+ * TODO doesn't check if MG1 triangle reordering works correctly, i.e. it isn't checked if
+ *      the same triangles exist after the reordering
  * 
  * @author maik
  *
@@ -75,25 +81,24 @@ public class WriteReadTest {
 		
 		float[] vertices = readVertices(mesh);		
 		float[] normals = readNormals(mesh);
+		float[] uvMap = readUVMap(mesh);
 		int[] indices = readIndices(mesh);
-
-		AttributeData[] empty = new AttributeData[0];
-		darwin.jopenctm.data.Mesh ctmMesh = new darwin.jopenctm.data.Mesh(
-				vertices, normals, indices, empty, empty);
 		
-		check(vertices, normals, indices, ctmMesh, true);
-
+		// TODO what values can the MG2 UV map precision have?
+		AttributeData uvMapData = new AttributeData("", "", 10, uvMap);
+		AttributeData[] uvMaps = {uvMapData};
+		
+		darwin.jopenctm.data.Mesh ctmMesh = new darwin.jopenctm.data.Mesh(
+				vertices, normals, indices, uvMaps, new AttributeData[0]);
+		
 		darwin.jopenctm.data.Mesh loadedMesh = encodeAndDecodeDirect(ctmMesh, enc);
 		Mesh loadedMeshArdor = encodeAndDecode(ctmMesh, enc);
 		
-		boolean checkBuffersEquality = RawEncoder.class.equals(enc.getClass()) ? true : false;
-		boolean checkMeshExact = !MG2Encoder.class.equals(enc.getClass()) ? true : false;
-
-		check(vertices, normals, indices, loadedMesh, checkBuffersEquality);
-		check(mesh, loadedMeshArdor, checkBuffersEquality, checkMeshExact);
+		check(vertices, normals, indices, uvMap, loadedMesh, enc);
+		check(mesh, loadedMeshArdor, enc);
 	}
 	
-	private float[] readVertices(Mesh mesh) {
+	public static float[] readVertices(Mesh mesh) {
 		float[] vertices = new float[mesh.getMeshData().getVertexCoords().getTupleCount()*mesh.getMeshData().getVertexCoords().getValuesPerTuple()];
 		System.out.println("mesh: " + mesh.getName() + "; verts: " + vertices.length);
 		mesh.getMeshData().getVertexBuffer().rewind();
@@ -101,55 +106,78 @@ public class WriteReadTest {
 		return vertices;
 	}
 	
-	private float[] readNormals(Mesh mesh) {
+	public static float[] readNormals(Mesh mesh) {
 		float[] normals = new float[mesh.getMeshData().getNormalCoords().getTupleCount()*mesh.getMeshData().getVertexCoords().getValuesPerTuple()];
 		mesh.getMeshData().getNormalBuffer().rewind();
 		mesh.getMeshData().getNormalBuffer().get(normals);
 		return normals;
 	}
 	
-	private int[] readIndices(Mesh mesh) {
+	public static int[] readIndices(Mesh mesh) {
 		IndexBufferData<?> ind = mesh.getMeshData().getIndices();
 		int[] indices = new int[ind.getBufferLimit()];
 		ind.asIntBuffer().get(indices);
 		return indices;
 	}
 	
-	private void check(float[] originalVertices, float[] originalNormals, int[] originalIndices, darwin.jopenctm.data.Mesh mesh, boolean checkContents) {
+	public static float[] readUVMap(Mesh mesh) {
+		float[] uvMap = new float[mesh.getMeshData().getTextureCoords(0).getTupleCount()*mesh.getMeshData().getTextureCoords(0).getValuesPerTuple()];
+		mesh.getMeshData().getTextureBuffer(0).rewind();
+		mesh.getMeshData().getTextureBuffer(0).get(uvMap);
+		return uvMap;
+	}
+	
+	private void check(float[] originalVertices, float[] originalNormals, int[] originalIndices, float[] originalUVMap, darwin.jopenctm.data.Mesh mesh, MeshEncoder enc) {
 		assertEquals(originalVertices.length, mesh.vertices.length);
 		assertEquals(originalNormals.length, mesh.normals.length);
-		assertEquals(originalIndices.length, mesh.indices.length);	
+		assertEquals(originalIndices.length, mesh.indices.length);
+		assertEquals(originalUVMap.length, mesh.texcoordinates[0].values.length);
 		
-		if (checkContents) {
+		if (!MG2Encoder.class.equals(enc.getClass())) {
 			assertArrayEquals(originalVertices, mesh.vertices, Float.MIN_VALUE);
 			assertArrayEquals(originalNormals, mesh.normals, Float.MIN_VALUE);
+			assertArrayEquals(originalUVMap, mesh.texcoordinates[0].values, Float.MIN_VALUE);
+			if (MG1Encoder.class.equals(enc.getClass())) {
+				MG1Encoder mg1 = (MG1Encoder) enc;
+				mg1.rearrangeTriangles(originalIndices);
+			}
 			assertArrayEquals(originalIndices, mesh.indices);
 		}
 	}
 	
-	private void check(Mesh originalMesh, Mesh newMesh, boolean checkBufferEquality, boolean checkMeshExact) {
-		float[] originalVertices = readVertices(originalMesh);		
+	private void check(Mesh originalMesh, Mesh newMesh, MeshEncoder enc) {
+		float[] originalVertices = readVertices(originalMesh);
 		float[] originalNormals = readNormals(originalMesh);
+		float[] originalUVMap = readUVMap(originalMesh);
 		int[] originalIndices = readIndices(originalMesh);
 		
 		float[] newVertices = readVertices(newMesh);
 		float[] newNormals = readNormals(newMesh);
+		float[] newUVMap = readUVMap(newMesh);
 		int[] newIndices = readIndices(newMesh);
 		
 		assertEquals(originalVertices.length, newVertices.length);
 		assertEquals(originalNormals.length, newNormals.length);
 		assertEquals(originalIndices.length, newIndices.length);
+		assertEquals(originalUVMap.length, newUVMap.length);
 		
 		originalMesh.setModelBound(new BoundingBox());
 		newMesh.setModelBound(new BoundingBox());
 			
-		if (checkBufferEquality) {
+		if (!MG2Encoder.class.equals(enc.getClass())) {
 			assertArrayEquals(originalVertices, newVertices, Float.MIN_VALUE);
 			assertArrayEquals(originalNormals, newNormals, Float.MIN_VALUE);
+			assertArrayEquals(originalUVMap, newUVMap, Float.MIN_VALUE);
+			if (MG1Encoder.class.equals(enc.getClass())) {
+				MG1Encoder mg1 = (MG1Encoder) enc;
+				mg1.rearrangeTriangles(originalIndices);
+			}
 			assertArrayEquals(originalIndices, newIndices);
-		} else {
-			double accuracy = checkMeshExact ? Double.MIN_VALUE : 0.1;
-			
+		}
+		
+		if (!RawEncoder.class.equals(enc.getClass())) {
+			double accuracy = MG1Encoder.class.equals(enc.getClass()) ? Double.MIN_VALUE : 0.1;
+
 			// TODO this should include more checks
 			assertEquals(originalMesh.getModelBound().getVolume(), 
 					newMesh.getModelBound().getVolume(), accuracy);

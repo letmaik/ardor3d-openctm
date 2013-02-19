@@ -1,0 +1,6 @@
+These three files have been produced by:
+
+1. Exporting an OpenCTM RAW mesh via com.github.neothemachine.ardor3d.openctm.TeapotReference#main
+2. Converting this mesh to RAW,MG1,MG2 using ctmconv
+
+The original exported RAW mesh has been visually verified using ctmviewer.
